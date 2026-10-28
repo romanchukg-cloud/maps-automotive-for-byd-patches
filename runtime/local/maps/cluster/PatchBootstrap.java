@@ -6,7 +6,7 @@ import android.content.Context;
 public final class PatchBootstrap {
     public static void attach(Context context){
         long at=android.os.SystemClock.uptimeMillis();
-        try{VehicleEvProfile.initializeEarly(context);VehicleEvBridge.initializeIdentity();MainUiScale.init(context);MicrogProvider.attach(context);MicrogWakeup.early(context);}
+        try{VehicleEvProfile.initializeEarly(context);VehicleEvBridge.initializeIdentity();MainUiScale.init(context);MicrogProvider.attach(context);MicrogWakeup.early(context);Navatars.installEarly(context);}
         finally{android.util.Log.i("MapsNavStartup","bootstrapAttach ms="+(android.os.SystemClock.uptimeMillis()-at));}
     }
     public static void install(Application app){

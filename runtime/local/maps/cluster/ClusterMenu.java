@@ -157,6 +157,7 @@ final class ClusterMenu {
         action("Steering-wheel zoom",WheelServiceSetup.enabled()?"On · instrument cluster only":"Off",this::wheel);
         action("Gemini voice assistant",GeminiLaunch.wheelEnabled()?"Long-press microphone enabled":"Map button and steering wheel",this::gemini);
         action("Send to car",SendToCarSetup.summary(activity),this::sendToCar);
+        action("3D car on map",Navatars.summary(context,prefs),this::navatar);
         if(DiLink3Projection.isCandidate())action("DiLink 3 cluster test",DiLink3Projection.enabled()?"Experimental projection enabled":"Off",this::diLink3);
         action("Route card",s.visible?s.size+"% · "+(s.side==0?"Left":"Right"):"Off",this::card);
         toggle("Picture-in-picture","Picture-in-picture when leaving Maps","picture_in_picture",s.pictureInPicture);
@@ -303,6 +304,27 @@ final class ClusterMenu {
             if(loaded!=DiLink51Setup.loaded()){oemLayout();return;}
             summary(status,DiLink51Setup.status());readerMain.postDelayed(this,500);
         }},500);
+    }
+    private void navatar(){
+        start("navatar","3D car on map");
+        toggle("Show 3D car","Car model instead of the arrow",Navatars.KEY,Navatars.enabled(prefs));
+        java.util.List<Navatars.Model> models=Navatars.models(context);
+        if(models.isEmpty()){note("No 3D car in this build.");return;}
+        Navatars.Model chosen=Navatars.selected(models,prefs);note("Model");
+        for(Navatars.Model m:models){final String id=m.id;LinearLayout r=row(m.label,null);boolean on=m==chosen;
+            ImageView radio=new ImageView(context);radio.setImageDrawable(new Mark(on?4:3,on?accent:ink));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(28),dp(36));lp.leftMargin=dp(12);r.addView(radio,lp);
+            r.setBackground(ripple(0));r.setFocusable(true);r.setContentDescription(m.label+(on?", selected":""));r.setOnClickListener(v->{prefs.edit().putString(Navatars.MODEL_KEY,id).apply();navatar();});rule();
+        }
+        if(chosen.paint.length>0){note("Colour");int colour=Navatars.colour(prefs);
+            for(int i=0;i<Navatars.COLOURS.length;i++){final int value=i;LinearLayout r=row(Navatars.COLOUR_NAMES[i],i==0?"As the model comes":null);
+                if(i>0){View swatch=new View(context);GradientDrawable dot=round(0xff000000|Navatars.COLOURS[i],14);dot.setStroke(dp(1),divider);swatch.setBackground(dot);
+                    LinearLayout.LayoutParams sp=new LinearLayout.LayoutParams(dp(28),dp(28));sp.leftMargin=dp(12);r.addView(swatch,sp);}
+                ImageView radio=new ImageView(context);radio.setImageDrawable(new Mark(i==colour?4:3,i==colour?accent:ink));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(dp(28),dp(36));lp.leftMargin=dp(12);r.addView(radio,lp);
+                r.setBackground(ripple(0));r.setFocusable(true);r.setContentDescription(Navatars.COLOUR_NAMES[i]+(i==colour?", selected":""));r.setOnClickListener(v->{prefs.edit().putInt(Navatars.COLOUR_KEY,value).apply();navatar();});rule();
+            }
+        }else note("This model keeps its own colours.");
+        action("Apply now","Restarts Maps · an active route ends",()->ClusterSettings.restartMaps(activity));
+        note("Changes apply the next time Maps starts.");
     }
     private void wheel(){
         start("wheel","Steering-wheel zoom");
@@ -573,7 +595,7 @@ final class ClusterMenu {
     private static final class Mark extends Drawable {
         final int kind,colour;final Paint paint=new Paint(3);
         Mark(int kind,int colour){this.kind=kind;this.colour=colour;}
-        public void draw(Canvas canvas){Rect b=getBounds();canvas.save();canvas.translate(b.left,b.top);canvas.scale(b.width()/32f,b.height()/32f);paint.setColor(colour);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(2.6f);paint.setStrokeCap(Paint.Cap.ROUND);paint.setStrokeJoin(Paint.Join.ROUND);Path p=new Path();
+        public void draw(Canvas canvas){Rect b=getBounds();canvas.save();float s=Math.min(b.width(),b.height())/32f;canvas.translate(b.exactCenterX()-16*s,b.exactCenterY()-16*s);canvas.scale(s,s);paint.setColor(colour);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(2.6f);paint.setStrokeCap(Paint.Cap.ROUND);paint.setStrokeJoin(Paint.Join.ROUND);Path p=new Path();
             if(kind==0){p.moveTo(22,7);p.lineTo(12,16);p.lineTo(22,25);canvas.drawPath(p,paint);canvas.drawLine(12,16,28,16,paint);}
             else if(kind==1){canvas.drawLine(8,8,24,24,paint);canvas.drawLine(24,8,8,24,paint);}
             else if(kind==2){p.moveTo(12,9);p.lineTo(19,16);p.lineTo(12,23);canvas.drawPath(p,paint);}

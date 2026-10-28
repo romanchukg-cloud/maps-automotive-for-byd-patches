@@ -148,6 +148,7 @@ public final class AutomotiveMicrogPatch {
   resources.execute(context->{
    requireInput(context.getPackageMetadata());
    try{WheelResources.apply(context);}catch(Exception e){throw new IllegalStateException("Wheel key metadata resources failed",e);}
+   try{VehicleIcon.apply(context);}catch(Exception e){throw new IllegalStateException("Vehicle icon resource failed",e);}
    try(var doc=context.document("AndroidManifest.xml")){
     isolateIdentity(doc);
     routePush(doc);
@@ -216,6 +217,7 @@ public final class AutomotiveMicrogPatch {
    if(PHASE_B)UiScaleHooks.apply(context);
    NavigationHooks.apply(context);
    VehicleEvHooks.apply(context);
+   NavatarsHooks.apply(context);
    KnownBevOption.apply(context,knownBev.getValue());
    // Includes strings in the guarded availability body; fail if the upstream shape changes.
    if(routes<103||gates!=1)throw new IllegalStateException("Unexpected AAOS protocol shape: routes="+routes+", gates="+gates);

@@ -12,8 +12,8 @@ import sys
 import zipfile
 
 CLI_SHA256 = "1b506ab5f03d16a2f65026d5e0e1910d01fc1e2152f21eaeb44ed2f30856597b"
-ARTIFACT = "maps-automotive-for-byd-morphe-preview.9.mpp"
-VERSION = "0.1.0-preview.9"
+ARTIFACT = "maps-automotive-for-byd-morphe-preview.10.mpp"
+VERSION = "0.1.0-preview.10"
 PATCH_NAME = "Maps Automotive for BYD (MicroG-RE TEST)"
 ROOT = Path(__file__).resolve().parent
 
@@ -48,8 +48,18 @@ def main():
     require(match and int(match.group(1)) >= 17, "JDK17 or newer is required on PATH.")
     patch_sources = sorted((ROOT / "src").rglob("*.java"))
     runtime_sources = sorted((ROOT / "runtime").rglob("*.java"))
-    require(len(patch_sources) == 17 and len(runtime_sources) == 101,
-            "The complete 17-file patch and 101-file staged runtime source trees are required.")
+    require(len(patch_sources) == 19 and len(runtime_sources) == 102,
+            "The complete 19-file patch and 102-file staged runtime source trees are required.")
+    # The car icon: an own rendering of a CC0 model (see NOTICE); VehicleIcon reads these names.
+    icons = ["car-topview.webp", "car-256.png", "car-207.png", "car-light-256.png", "car-light-207.png",
+             "empty-256.png", "empty-207.png"]
+    for name in icons:
+        require((ROOT / "assets/vehicle-icon" / name).is_file(), "Missing car icon asset: " + name)
+    # The 3D car: our own rig and animations around an adapted CC BY-NC-SA model (see its LICENSE file).
+    # navatars/FILES lists them for the resource patch, which copies them into the APK's assets/navatars/.
+    navatars = sorted(p.name for p in (ROOT / "assets/navatars").iterdir() if p.is_file())
+    for name in ("manifest_1.json", "models.json", "tang2024.fbx", "tang2024.png", "tang2024-LICENSE.txt"):
+        require(name in navatars, "Missing 3D car asset: " + name)
     for name in ("LICENSE", "UPSTREAM-NOTICE", "NOTICE"):
         require((ROOT / name).is_file(), "Missing required notice: " + name)
     # A fresh directory gives every build an immutable output location.
@@ -116,7 +126,7 @@ def main():
     manifest = (
         "Manifest-Version: 1.0\r\n"
         "Name: Maps Automotive for BYD + Gemini (TEST)\r\n"
-        "Description: TEST Maps55E (Send to car) and optional Google20 Gemini support for MicroG-RE\r\n"
+        "Description: TEST Maps55J (car icon, 3D car, Send to car) and optional Google20 Gemini support for MicroG-RE\r\n"
         "Version: " + VERSION + "\r\n"
         "Author: romanchukg-cloud\r\n"
         "License: GPL-3.0-only\r\n"
@@ -137,6 +147,11 @@ def main():
         put(archive, "classes.dex", (dex / "classes.dex").read_bytes())
         for module, path in extensions.items():
             put(archive, "extensions/" + module + ".mpe", path.read_bytes())
+        for name in icons:
+            put(archive, "vehicle-icon/" + name, (ROOT / "assets/vehicle-icon" / name).read_bytes())
+        put(archive, "navatars/FILES", ("\n".join(navatars) + "\n").encode())
+        for name in navatars:
+            put(archive, "navatars/" + name, (ROOT / "assets/navatars" / name).read_bytes())
         for path in patch_sources + runtime_sources + test_sources:
             put(archive, path.relative_to(ROOT).as_posix(), path.read_bytes())
         for name in ("LICENSE", "UPSTREAM-NOTICE", "NOTICE"):
@@ -144,10 +159,12 @@ def main():
 
     source_hashes = {path.relative_to(ROOT).as_posix(): sha256(path)
                      for path in patch_sources + runtime_sources}
+    source_hashes.update({"assets/vehicle-icon/" + name: sha256(ROOT / "assets/vehicle-icon" / name) for name in icons})
+    source_hashes.update({"assets/navatars/" + name: sha256(ROOT / "assets/navatars" / name) for name in navatars})
     record = {
         "agent": "Claude",
         "status": "prepared_not_published",
-        "maps_functional_revision": "55E",
+        "maps_functional_revision": "55J",
         "google_functional_revision": "20",
         "google_input": "17.62.11.ve.arm64/301813762/API32+",
         "patch_names": [PATCH_NAME, "Google app for BYD (MicroG-RE TEST)"],
